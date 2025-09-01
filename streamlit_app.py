@@ -1,6 +1,7 @@
 import streamlit as st
 import tempfile
 import os
+import re
 
 from ats_checker import extract_text_from_pdf, analyze_resume
 from github_audit import analyze_github_profile
@@ -39,6 +40,14 @@ if st.button("Run ATS Analysis"):
             resume_text = extract_text_from_pdf(resume_path)
             score, results, feedback = analyze_resume(resume_text)
 
+            # --- Auto-detect GitHub link in resume if not given ---
+            if not github_url:
+                github_found = re.findall(r'(https?://github\.com/[^\s]+)', resume_text)
+                if github_found:
+                    github_url = github_found[0]
+                    st.info(f"🔍 GitHub profile detected from resume: {github_url}")
+
+            # --- ATS Report ---
             st.subheader("📊 ATS Screening Report")
             st.write(f"**Role:** { 'Custom JD' if jd_text else 'Data Analyst (Default)' }")
             st.write(f"**Final ATS Score:** {score}/100")
@@ -53,7 +62,7 @@ if st.button("Run ATS Analysis"):
             for k, v in feedback.items():
                 st.write(f"- {v}")
 
-            # --- GitHub Audit (if provided) ---
+            # --- GitHub Audit (if detected or provided) ---
             if github_url:
                 st.subheader("🌐 GitHub Audit Report")
                 gh_results = analyze_github_profile(github_url)
